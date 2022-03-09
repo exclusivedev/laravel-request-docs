@@ -1,10 +1,10 @@
 <?php
 
-namespace Rakutentech\LaravelRequestDocs\Controllers;
+namespace ExclusiveDev\LaravelRequestDocs\Controllers;
 
 use Route;
 use Closure;
-use Rakutentech\LaravelRequestDocs\LaravelRequestDocs;
+use ExclusiveDev\LaravelRequestDocs\LaravelRequestDocs;
 use Illuminate\Routing\Controller;
 
 class LaravelRequestDocsController extends Controller

@@ -1,11 +1,11 @@
 <?php
 
-namespace Rakutentech\LaravelRequestDocs;
+namespace ExclusiveDev\LaravelRequestDocs;
 
 use Illuminate\Support\Facades\Facade;
 
 /**
- * @see \Rakutentech\LaravelRequestDocs\LaravelRequestDocs
+ * @see \ExclusiveDev\LaravelRequestDocs\LaravelRequestDocs
  */
 class LaravelRequestDocsFacade extends Facade
 {

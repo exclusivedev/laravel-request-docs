@@ -1,9 +1,9 @@
 <?php
 
-namespace Rakutentech\LaravelRequestDocs\Commands;
+namespace ExclusiveDev\LaravelRequestDocs\Commands;
 
 use Illuminate\Console\Command;
-use Rakutentech\LaravelRequestDocs\LaravelRequestDocs;
+use ExclusiveDev\LaravelRequestDocs\LaravelRequestDocs;
 
 use File;
 

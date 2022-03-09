@@ -11,7 +11,7 @@
       <link href="https://cdn.jsdelivr.net/npm/tailwindcss/dist/tailwind.min.css" rel="stylesheet">
       <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
       <script src="https://unpkg.com/vue-prism-editor"></script>
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.16.2/axios.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.4/axios.min.js"></script>
       <link rel="stylesheet" href="https://unpkg.com/vue-prism-editor/dist/prismeditor.min.css" />
 
       <script src="https://unpkg.com/prismjs/prism.js"></script>
@@ -92,33 +92,61 @@
    <body class="bg-gray-100 tracking-wide bg-gray-200">
 
         <nav class="bg-white py-2 ">
-            <div class="container px-4 md:flex md:items-center">
+            <div class="container px-4 mx-auto md:flex md:items-center">
                 <div class="flex justify-between items-center">
                     <a href="{{config('request-docs.url')}}" class="font-bold text-xl text-indigo-600">{{ config('request-docs.document_name') }}</a>
                 </div>
             </div>
         </nav>
       <div id="app" v-cloak class="w-full flex lg:pt-10">
-         <aside class="text-sm ml-1.5 text-grey-darkest break-all bg-gray-200 pl-2 h-screen sticky top-1 overflow-auto">
-            <h1 class="font-medium mx-3 mt-3" style="width: max-content;min-width:350px;">Routes List</h1>
+         <aside class="text-xl text-grey-darkest break-all bg-gray-200 pl-2 h-screen sticky top-1 overflow-auto" >
+            <h1 class="font-light mx-3">Routes List</h1>
+             <div class="dropdown">
+                 <input
+                     v-model.trim="search"
+                     class="dropdown-input appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                     type="text"
+                     placeholder="Search"
+                     @focus="showRoute = true;$event.target.select()"
+                     @blur="setTimeout(() => { showRoute = false}, 200)"
+                 />
+                 <div class="dropdown-list">
+                     @foreach ($docs as $index => $doc)
+                     <div  v-if="filter('{{ $doc["uri"] }}')"
+                        v-show="showRoute"
+                        @click="searched('{{ $doc["methods"][0] }}', '{{ $doc["uri"] }}') ; highlightSidebar('{{ $index }}')"
+                        class="dropdown-item">
+                         {{ str_replace('api/', '', $doc['uri']) }}
+                     </div>
+                     @endforeach
+                 </div>
+             </div>
             <hr class="border-b border-gray-300">
-            <table class="table-fixed text-sm mt-5" style="width: max-content">
-                <tbody>
+            <table class="table-fixed text-sm mt-5">
+                <tbody>  
+                    @php
+                        $previousHeader = null;
+                    @endphp                  
                     @foreach ($docs as $index => $doc)
                     <tr>
                         <td>
+                            @php                                
+                                $currentHeader = explode('/',$doc['uri'])[1];                                
+                            @endphp
+                            @if ($previousHeader !== $currentHeader)
+                                <h3 class="uppercase mt-2 font-semibold">{{ $currentHeader }}</h3>
+                            @endif
                             <a href="#{{$doc['methods'][0] .'-'. $doc['uri']}}" @click="highlightSidebar({{$index}})" v-if="!docs[{{$index}}]['isHidden']">
+                            <div class="flex items-center whitespace-nowrap space-x-1" >
                                 <span class="
-                                    font-medium
-                                    inline-flex
-                                    items-center
-                                    justify-center
-                                    px-2
+                                    font-thin
+                                    text-center
                                     py-1
                                     text-xs
                                     font-bold
                                     leading-none
                                     rounded
+                                    w-14
                                     text-{{in_array('GET', $doc['methods']) ? 'green': ''}}-100 bg-{{in_array('GET', $doc['methods']) ? 'green': ''}}-500
                                     text-{{in_array('POST', $doc['methods']) ? 'black': ''}} bg-{{in_array('POST', $doc['methods']) ? 'red': ''}}-500
                                     text-{{in_array('PUT', $doc['methods']) ? 'black': ''}}-100 bg-{{in_array('PUT', $doc['methods']) ? 'yellow': ''}}-500
@@ -144,16 +172,20 @@
                                         </span>
                                     </span>
                                 </span>
+                            </div>
                             </a>
                         </td>
                     </tr>
+                    @php
+                        $previousHeader = $currentHeader;
+                    @endphp
                     @endforeach
                 </tbody>
             </table>
         </aside>
          <br><br>
-         <div class="ml-6 mr-6 pl-2 w-2/3 p-2" style="width: 100%">
-            <h1 class="pl-2 pr-2 break-normal text-black break-normal font-sans text-black font-medium">
+         <div class="ml-6 mr-6 pl-2 w-2/3 bg-gray-300 p-2" >
+         <h1 class="pl-2 pr-2 break-normal text-black break-normal font-sans text-black font-medium">
                 Search・Sort settings
             </h1>
             <hr class="border-b border-gray-300">
@@ -186,14 +218,13 @@
             <h1 class="pl-2 pr-2 break-normal text-black break-normal font-sans text-black font-medium">
                 Routes List
             </h1>
-            <hr class="border-b border-gray-300">
-            <br>
+            <hr class=
             @foreach ($docs as $index => $doc)
             <section class="pt-5 pl-2 pr-2 pb-5 border mb-10 rounded bg-white shadow" v-if="!docs[{{$index}}]['isHidden']">
-                <div class="font-sans" id="{{$doc['httpMethod'] .'-'. $doc['uri']}}">
+                <div class="font-sans" id="{{$doc['methods'][0] .'-'. $doc['uri']}}">
                 <h1 class="text-sm break-normal text-black bg-indigo-50 break-normal font-sans pb-1 pt-1 text-black">
                     <span class="w-20
-                        font-medium
+                        font-thin
                         inline-flex
                         items-center
                         justify-center
@@ -218,36 +249,27 @@
                 </div>
                 <hr class="border-b border-grey-light">
 
-                <table class="table-fixed text-sm mt-5">
+                <table class="table-fixed text-sm mt-5 shadow-inner">
+                    <thead class="border">
+                    </thead>
                     <tbody>
                         <tr>
-                            <td class="align-left pl-2 pr-2 bg-gray-100 border-r-2">HTTP Method</td>
-                            <td class="align-left pl-2 pr-2 font-bold break-all">{{$doc['httpMethod']}}</td>
+                            <td class="align-left border border-gray-300 pl-2 pr-2 bg-gray-200 font-bold">Controller</td>
+                            <td class="align-left border pl-2 pr-2 break-all">{{$doc['controller_full_path']}}</td>
                         </tr>
                         <tr>
-                            <td class="align-left pl-2 pr-2 bg-gray-100 border-r-2">URL</td>
-                            <td class="align-left pl-2 pr-2 break-all">
-                                <a target="_blank" href="@{{window.location.origin}}/{{$doc['uri']}}">@{{window.location.origin}}/{{$doc['uri']}}</a>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="align-left pl-2 pr-2 bg-gray-100 border-r-2">Controller</td>
-                            <td class="align-left pl-2 pr-2 break-all">{{$doc['controller_full_path']}}</td>
-                        </tr>
-                        <tr>
-                            <td class="align-left pl-2 pr-2 bg-gray-100 border-r-2">Controller Method</td>
-                            <td class="align-left pl-2 pr-2 break-all">{{"@" .$doc['method']}}</td>
+                            <td class="align-left border border-gray-300 pl-2 pr-2 bg-gray-200 font-bold">Method</td>
+                            <td class="align-left border pl-2 pr-2 break-all">{{"@" .$doc['method']}}</td>
                         </tr>
                         @foreach ($doc['middlewares'] as $middleware)
                             <tr>
-                                <td class="align-left pl-2 pr-2 bg-gray-100 border-r-2">Middleware {{ $loop->index + 1 }}</td>
-                                <td class="align-left pl-2 pr-2 break-all">{{$middleware}}</td>
+                                <td class="align-left border border-gray-300 pl-2 pr-2 bg-gray-200">Middleware</td>
+                                <td class="align-left border pl-2 pr-2 break-all">{{$middleware}}</td>
                             </tr>
                         @endforeach
                     </tbody>
                 </table>
-                <div v-if="docs[{{$index}}]['docBlock']" class="border-2 mr-4 mt-4 p-4 rounded text-sm">
-                    <h3 class="font-bold">LRD Docs</h3>
+                <div v-if="docs[{{$index}}]['docBlock']" class="border-2 mr-4 mt-4 p-4 rounded shadow-inner text-sm">
                     <vue-markdown>{!! $doc['docBlock'] !!}</vue-markdown>
                 </div>
                 <br>
@@ -255,36 +277,37 @@
                 <table class="table-fixed align-left text-sm mt-5">
                     <thead class="border">
                     <tr class="border">
-                        <th class="border border-gray-300 pl-2 pr-16 pt-1 pb-1 w-min text-left bg-gray-200">No.</th>
-                        <th class="border border-gray-300 pl-2 pr-16 pt-1 pb-1 w-min text-left bg-gray-200">Attributes</th>
-                        <th class="border border-gray-300 pl-2 pr-16 pt-1 pb-1 w-min text-left bg-gray-200">Type</th>
-                        <th class="border border-gray-300 pl-2 pr-16 pt-1 pb-1 w-min text-left bg-gray-200">Nullable</th>
-                        <th class="border border-gray-300 pl-2 pr-16 pt-1 pb-1 w-min text-left bg-gray-200">Bail</th>
-                        <th class="border border-gray-300 pl-2 pr-16 pt-1 pb-1 w-min text-left bg-gray-200">Rules</th>
+                        <th class="border border-gray-300 pl-2 pr-16 pt-1 pb-1 w-12 text-left bg-gray-200">Attributes</th>
+                        <th class="border border-gray-300 pl-2 pr-16 pt-1 pb-1 w-12 text-left bg-gray-200">Required</th>
+                        <th class="border border-gray-300 pl-2 pr-16 pt-1 pb-1 w-10 text-left bg-gray-200">Type</th>
+                        <th class="border border-gray-300 pl-2 pr-16 pt-1 pb-1 w-1/20 text-left bg-gray-200">Rules</th>
                     </tr>
                     </thead>
                     <tbody>
                     @foreach ($doc['rules'] as $attribute => $rules)
                     <tr class="border">
-                        <td class="border pl-3 pt-1 pb-1 pr-2">{{$loop->index+1}}</td>
-                        <td class="border pl-3 pt-1 pb-1 pr-2 bg-gray-200">
-                            {{$attribute}}
-                            @foreach ($rules as $rule)
-                                @if (str_contains($rule, 'required'))
-                                <sup class="text-red-500 font-bold"> *required</sup>
-                                @endif
-                            @endforeach
-                        </td>
+                        <td class="border border-blue-200 pl-3 pt-1 pb-1 pr-2 bg-blue-100">{{$attribute}}</td>
                         <td class="border pl-3 pt-1 pb-1 pr-2">
                             @foreach ($rules as $rule)
+                                @if (str_contains($rule, 'required'))
+                                <span class="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-pink-100 bg-pink-600 rounded">REQUIRED</span>
+                                @endif
+                            <br>
+                            @endforeach
+                        </td>
+                        <td class="border pl-3 pt-1 pb-1 pr-2 bg-gray-100">
+                            @foreach ($rules as $rule)
+                               @if (str_contains($rule, 'numeric'))
+                                <span class="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-blue-100 bg-blue-500 rounded">Numeric</span>
+                                @endif
                                 @if (str_contains($rule, 'integer'))
-                                <span class="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-blue-800 bg-blue-300 rounded">Integer</span>
+                                <span class="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-blue-100 bg-blue-500 rounded">Integer</span>
                                 @endif
                                 @if (str_contains($rule, 'string'))
                                 <span class="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-green-100 bg-green-500 rounded">String</span>
                                 @endif
                                 @if (str_contains($rule, 'array'))
-                                <span class="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-gray-800 bg-blue-200 rounded">Array</span>
+                                <span class="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-gray-700 bg-yellow-400 rounded">Array</span>
                                 @endif
                                 @if (str_contains($rule, 'date'))
                                 <span class="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-gray-800 bg-yellow-400 rounded">Date</span>
@@ -292,33 +315,22 @@
                                 @if (str_contains($rule, 'boolean'))
                                 <span class="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-gray-800 bg-green-400 rounded">Boolean</span>
                                 @endif
-                            @endforeach
-                        </td>
-                        <td class="border pl-3 pt-1 pb-1 pr-2 bg-gray-100 text-center">
-                            @foreach ($rules as $rule)
-                                @if (str_contains($rule, 'nullable'))
-                                <span class="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none rounded">Nullable</span>
-                                @endif
-                            @endforeach
-                        </td>
-                        <td class="border pl-3 pt-1 pb-1 pr-2 text-center">
-                            @foreach ($rules as $rule)
-                                @if (str_contains($rule, 'bail'))
-                                <span class="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-500 rounded">Bail</span>
-                                @endif
+                            <br>
                             @endforeach
                         </td>
                         <td class="border pl-3 pr-2 break-all">
                             <div class="font-mono">
                                 @foreach ($rules as $rule)
-                                    @foreach (explode('|', $rule) as $r)
-                                        @if (!in_array($r, ['required', 'integer', 'string', 'boolean', 'array', 'nullable', 'bail']))
-                                            {{$r}}
-                                            @if (!$loop->last)
+                                        @php
+                                         $parts = array_diff(explode('|', $rule), ['required', 'integer', 'string', 'boolean', 'array', 'numeric']);
+                                        @endphp
+                                        @foreach ( $parts as $p)
+					    {{$p}}
+					    @if (!$loop->last)
                                             <span class="text-gray-900 font-bold">|</span>
-                                            @endif
-                                        @endif
-                                    @endforeach
+                                            @endif                                      
+                                        @endforeach
+
                                 @endforeach
                             </div>
                         </td>
@@ -346,7 +358,7 @@
                 <button
                     v-if="docs[{{$index}}]['try']"
                     @click="request(docs[{{$index}}])"
-                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold mt-2 border-blue-800 border-2 shadow-inner mb-1 pl-5 pr-5 rounded-full"
+                    class="bg-red-500 hover:bg-red-700 text-white font-bold mt-2 border-red-800 border-2 shadow-inner mb-1 pl-5 pr-5 rounded-full"
                 >
                     <svg
                         v-if="docs[{{$index}}]['loading']"
@@ -354,33 +366,43 @@
                     Run
                 </button>
 
+
+                <div v-if="docs[{{$index}}]['bearer'] && docs[{{$index}}]['try']" class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="token">
+                        Bearer Token
+                    </label>
+                    <input
+                        v-model="token"
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                        id="token"
+                        type="text"
+                        placeholder="Bearer Token"
+                        autocomplete="off"
+                    />
+                </div>
+
                 <div class="grid grid-cols-1 mt-3 pr-2 overflow-auto">
                     <div class="">
                         <div v-if="docs[{{$index}}]['try']">
-                            <h3 class="font-medium">REQUEST URL<sup class="text-red-500 font-bold"> *required</sup></h3>
-                            <p class="text-xs pb-2 font-medium text-gray-500">Enter your request URL with query params</p>
+                            <h3 class="font-thin">REQUEST URL<sup class="text-red-500 font-bold"> *required</sup></h3>
+                            <p class="text-xs pb-2 font-thin text-gray-500">Enter your request URL with query params</p>
                             <prism-editor class="my-prism-editor"
                             style="padding:15px 0px 15px 0px;min-height:20px;background:#2d2d2d;color: #ccc;resize:both;"
                             v-model="docs[{{$index}}]['url']" :highlight="highlighter" line-numbers></prism-editor>
                             <br>
                             @if (!in_array('GET', $doc['methods']))
-                            <h3 class="font-medium">REQUEST BODY<sup class="text-red-500"> *required</sup></h3>
-                            <p class="text-xs pb-2 font-medium text-gray-500">JSON body for the POST|PUT|DELETE request</p>
-                            <prism-editor
-                                class="my-prism-editor"
-                                style="min-height:200px;background:#2d2d2d;color: #ccc;resize:both"
-                                v-model="docs[{{$index}}]['body']"
-                                :highlight="highlighter"
-                                line-numbers></prism-editor>
+                            <h3 class="font-thin">REQUEST BODY<sup class="text-red-500"> *required</sup></h3>
+                            <p class="text-xs pb-2 font-thin text-gray-500">JSON body for the POST|PUT|DELETE request</p>
+                            <prism-editor class="my-prism-editor" style="min-height:200px;background:#2d2d2d;color: #ccc;resize:both" v-model="docs[{{$index}}]['body']" :highlight="highlighter" line-numbers></prism-editor>
                             @endif
                         </div>
                     </div>
                     <hr class="border-b border-dotted mt-4 mb-2 border-gray-300">
                     <div class="grid grid-cols-2 gap-2" v-if="docs[{{$index}}]['response'] && !docs[{{$index}}]['cancel']">
                         <div class="border-r-2">
-                            <h3 class="font-medium">
+                            <h3 class="font-thin">
                                 RESPONSE
-                                <p class="text-xs pt-2 pb-2 font-medium text-gray-500">
+                                <p class="text-xs pt-2 pb-2 font-thin text-gray-500">
                                     Response status, code and time.
                                 </p>
                             </h3>
@@ -631,6 +653,8 @@
             el: '#app',
             data: {
                 docs: docs,
+                token: '',
+                search: '',
                 showRoute: false,
                 requestHeaders: '',
                 filterTerm: ''
@@ -641,6 +665,20 @@
                 this.requestHeaders = JSON.stringify(axios.defaults.headers.common, null, 2)
             },
             methods: {
+                filter(uri) {
+                    if (!this.search) {
+                        return true
+                    }
+                    var similarity = stringSimilarity.compareTwoStrings(uri, this.search);
+                    return similarity > 0.1
+                },
+                searched(method, uri) {
+                    var oldUrl = new URL(document.URL);
+                    oldUrl.hash = '#' + method + '-' + uri;
+                    var newUrl = oldUrl.href;
+                    document.location.href = newUrl;
+                    this.search = uri.replace('api/', '');
+                },
                 highlightSidebar(idx) {
                     docs.map(function(doc, index) {
                         doc.isActiveSidebar = index == idx
@@ -685,31 +723,62 @@
                     doc.responseTime = null
                     doc.responseHeaders = null
                     doc.loading = true
+                    axios.defaults.headers.common['X-Request-LRD'] = 'lrd'
+                    axios.defaults.headers.common['X-CSRF-TOKEN'] = '{{ csrf_token() }}'
 
+                    if (doc.bearer) {
+                        axios.defaults.headers.common = {
+                            Authorization: `Bearer ${this.token}`,
+                            Accept: `application/json`,
+                            'X-Request-LRD': 'lrd',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        };
+                    }
                     let startTime = new Date().getTime();
+
                     axios({
                         method: method,
                         url: url,
                         data: json,
-                        decompress: true,
                         withCredentials: true
-                      }).then(response => {
-                        console.log("response", response)
-                        doc.responseOk = true
-                        if (response && response.data) {
-                            if (response.data['_lrd']) {
-                                doc.queries = response.data['_lrd']['queries']
-                                doc.memory = response.data['_lrd']['memory']
-                                delete response.data['_lrd']
-                            }
-                            doc.response = JSON.stringify(response.data, null, 2)
-                            doc.responseCode = response.status
-                            doc.responseHeaders = JSON.stringify(response.headers, null, 2)
+                      }).then((response) => {
+                        if (response['_lrd']) {
+                            doc.queries = response['_lrd']['queries']
+                            doc.memory = response['_lrd']['memory']
+
+                            delete response['_lrd']
+                        }
+                        // in case of validation error
+                        if (response.data && response.data && response.data['_lrd']) {
+                            doc.queries = response.data['_lrd']['queries']
+                            doc.memory = response.data['_lrd']['memory']
+                            delete response.data['_lrd']
                         }
 
-                      }).catch(error => {
+                        // in case of validation error
+                        if (response.data && response.data.data && response.data.data['_lrd']) {
+                            doc.queries = response.data.data['_lrd']['queries']
+                            doc.memory = response.data.data['_lrd']['memory']
+                            delete response.data.data['_lrd']
+                        }
+                        doc.response = JSON.stringify(response.data, null, 2)
+                        doc.responseCode = response.status
+                        doc.responseHeaders = JSON.stringify(response.headers, null, 2)
+                        doc.responseOk = true
+                      }).catch((error) => {
                         doc.responseOk = false
-                        console.log("error", error)
+                        if (error['_lrd']) {
+                            // split array to new lines
+                            doc.queries = error['_lrd']['queries']
+                            doc.memory = error['_lrd']['memory']
+                            delete error['_lrd']
+                        }
+                        if (error.data && error.data['_lrd']) {
+                            doc.queries = error.data['_lrd']['queries']
+                            doc.memory = error.data['_lrd']['memory']
+                            delete error.data['_lrd']
+                        }
+                        doc.loading = false
                         if (error && error.response && error.response.data) {
                             console.log("error response", error.response)
                             if (error.response.data['_lrd']) {

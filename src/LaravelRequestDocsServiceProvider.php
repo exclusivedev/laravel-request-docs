@@ -1,30 +1,30 @@
 <?php
 
-namespace Rakutentech\LaravelRequestDocs;
+namespace ExclusiveDev\LaravelRequestDocs;
 
-use Spatie\LaravelPackageTools\Package;
-use Spatie\LaravelPackageTools\PackageServiceProvider;
-use Rakutentech\LaravelRequestDocs\Commands\LaravelRequestDocsCommand;
+// use Spatie\LaravelPackageTools\Package;
+// use Spatie\LaravelPackageTools\PackageServiceProvider;
+use Illuminate\Support\ServiceProvider as PackageServiceProvider;
+use ExclusiveDev\LaravelRequestDocs\Commands\LaravelRequestDocsCommand;
 use Route;
 
 class LaravelRequestDocsServiceProvider extends PackageServiceProvider
 {
-    public function configurePackage(Package $package): void
+    public function boot()
     {
-        /*
-         * This class is a Package Service Provider
-         *
-         * More info: https://github.com/spatie/laravel-package-tools
-         */
-        $package
-            ->name('laravel-request-docs')
-            ->hasConfigFile('request-docs')
-            ->hasViews()
-            //->hasAssets()
-            ->hasCommand(LaravelRequestDocsCommand::class);
-
-        Route::get(config('request-docs.url'), [\Rakutentech\LaravelRequestDocs\Controllers\LaravelRequestDocsController::class, 'index'])
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'request-docs');
+        Route::get(config('request-docs.url'), [\Osem\LaravelRequestDocs\Controllers\LaravelRequestDocsController::class, 'index'])
             ->name('request-docs.index')
             ->middleware(config('request-docs.middlewares'));
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                LaravelRequestDocsCommand::class,
+            ]);
+        }
+    }
+
+    public function register()
+    {
+        $this->mergeConfigFrom(__DIR__.'/../config/request-docs.php', 'request-docs');
     }
 }

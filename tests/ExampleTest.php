@@ -1,6 +1,6 @@
 <?php
 
-namespace Rakutentech\LaravelRequestDocs\Tests;
+namespace ExclusiveDev\LaravelRequestDocs\Tests;
 
 class ExampleTest extends TestCase
 {

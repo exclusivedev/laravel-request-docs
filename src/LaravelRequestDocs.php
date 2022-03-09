@@ -1,15 +1,20 @@
 <?php
 
-namespace Rakutentech\LaravelRequestDocs;
+namespace ExclusiveDev\LaravelRequestDocs;
 
+use ErrorException;
 use Route;
 use ReflectionMethod;
+use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Exception;
 use Throwable;
+use ReflectionException;
 
 class LaravelRequestDocs
 {
+
     public function getDocs()
     {
         $docs = [];
@@ -71,20 +76,14 @@ class LaravelRequestDocs
             }
 
             try {
-                $actionControllerName = $route->action['controller'] ?? $route->action["0"];
-                /// Show Pnly Controller Name
-                $controllerFullPath = explode('@', $actionControllerName)[0];
-                $getStartWord = strrpos(explode('@', $actionControllerName)[0], '\\') + 1;
+                /// Show Only Controller Name
+                // echo $route->action['controller'] . PHP_EOL;
+                $controllerFullPath = explode('@', $route->action['controller'])[0];
+                $getStartWord = strrpos(explode('@', $route->action['controller'])[0], '\\') + 1;
                 $controllerName = substr($controllerFullPath, $getStartWord);
 
-                $method = explode('@', $actionControllerName)[1] ?? '__invoke';
-                $httpMethod = $route->methods[0];
-                foreach ($controllersInfo as $controllerInfo) {
-                    if ($controllerInfo['uri'] == $route->uri && $controllerInfo['httpMethod'] == $httpMethod) {
-                        // is duplicate
-                        continue;
-                    }
-                }
+                /// Has Auth Token
+                $hasAuthToken = !is_array($route->action['middleware']) ? [$route->action['middleware']] : $route->action['middleware'];
 
                 $controllersInfo[] = [
                     'uri'                   => $route->uri,
@@ -92,10 +91,10 @@ class LaravelRequestDocs
                     'middlewares'           => !is_array($route->action['middleware']) ? [$route->action['middleware']] : $route->action['middleware'],
                     'controller'            => $controllerName,
                     'controller_full_path'  => $controllerFullPath,
-                    'method'                => $method,
-                    'httpMethod'            => $httpMethod,
+                    'method'                => explode('@', $route->action['controller'])[1],
                     'rules'                 => [],
-                    'docBlock'              => ""
+                    'docBlock'              => "",
+                    'bearer'                => in_array('auth:api', $hasAuthToken)
                 ];
             } catch (Exception $e) {
                 continue;
@@ -110,37 +109,34 @@ class LaravelRequestDocs
         foreach ($controllersInfo as $index => $controllerInfo) {
             $controller       = $controllerInfo['controller_full_path'];
             $method           = $controllerInfo['method'];
-            $reflectionMethod = new ReflectionMethod($controller, $method);
-            $params           = $reflectionMethod->getParameters();
+            // echo $controller . '@' . $method . PHP_EOL;
+            try {
+                $reflectionMethod = new ReflectionMethod($controller, $method);
+                $params           = $reflectionMethod->getParameters();
 
-            foreach ($params as $param) {
-                if (!$param->getType()) {
-                    continue;
-                }
-                $requestClassName = $param->getType()->getName();
-                $requestClass = null;
-                try {
-                    $requestClass = new $requestClassName();
-                } catch (Throwable $th) {
-                    //throw $th;
-                }
-
-                if ($requestClass && method_exists($requestClass, 'rules')) {
-                    try {
-                        $controllersInfo[$index]['rules'] = $this->flattenRules($requestClass->rules());
-                    } catch (Exception $e) {
-                        // disabled. This only works when the rules are defined as 'required|integer' and that too in single line
-                        // doesn't work well when the same rule is defined as array ['required', 'integer'] or in multiple lines such as
-                        // If your rules are not populated using this library, then fix your rule to only throw validation errors and not throw exceptions
-                        // such as 404, 500 inside the request class.
-                        $controllersInfo[$index]['rules'] = $this->rulesByRegex($requestClassName);
-
-                        if (config('request-docs.debug')) {
-                            throw $e;
-                        }
+                foreach ($params as $param) {
+                    if (!$param->getType()) {
+                        continue;
                     }
-                    $controllersInfo[$index]['docBlock'] = $this->lrdDocComment($reflectionMethod->getDocComment());
+                    $requestClassName = $param->getType()->getName();
+                    $requestClass = null;
+                    try {
+                        $requestClass = new $requestClassName();
+                    } catch (Throwable $th) {
+                        //throw $th;
+                    }
+                    if ($requestClass instanceof FormRequest) {
+                        try {
+                            $controllersInfo[$index]['rules'] = $this->flattenRules($requestClass->rules());
+                        } catch (\Exception $th) {
+                            $controllersInfo[$index]['rules'] = $this->rulesByRegex($requestClassName);
+                        }
+                        $controllersInfo[$index]['docBlock'] = $this->lrdDocComment($reflectionMethod->getDocComment());
+                    }
                 }
+            } catch (ReflectionException $e) {
+                // log/report
+                continue;
             }
         }
         return $controllersInfo;
@@ -149,17 +145,19 @@ class LaravelRequestDocs
     public function lrdDocComment($docComment): string
     {
         $lrdComment = "";
-        $counter = 0;
+        $found = false;
         foreach (explode("\n", $docComment) as $comment) {
             $comment = trim($comment);
             // check contains in string
-            if (Str::contains($comment, '@lrd')) {
-                $counter++;
-            }
-            if ($counter == 1 && !Str::contains($comment, '@lrd')) {
-                if (Str::startsWith($comment, '*')) {
-                    $comment = trim(substr($comment, 1));
-                }
+            if (Str::contains($comment, '@lrdend')) {
+                break;
+            } else if (Str::contains($comment, '@lrd')) {
+                $found = true;
+                continue;
+            }  
+            
+            if ($found) {                
+                $comment = trim(substr($comment, 1));                
                 // remove first character from string
                 $lrdComment .= $comment . "\n";
             }
@@ -203,13 +201,9 @@ class LaravelRequestDocs
         $data = new ReflectionMethod($requestClassName, 'rules');
         $lines = file($data->getFileName());
         $rules = [];
-
         for ($i = $data->getStartLine() - 1; $i <= $data->getEndLine() - 1; $i++) {
-            // check if => in string, only pick up rules that are coded on single line
-            if (Str::contains($lines[$i], '=>')) {
-                preg_match_all("/(?:'|\").*?(?:'|\")/", $lines[$i], $matches);
-                $rules[] =  $matches;
-            }
+            preg_match_all("/(?:'|\").*?(?:'|\")/", $lines[$i], $matches);
+            $rules[] =  $matches;
         }
 
         $rules = collect($rules)
@@ -217,9 +211,9 @@ class LaravelRequestDocs
                 return count($item[0]) > 0;
             })
             ->transform(function ($item) {
-                $fieldName = Str::of($item[0][0])->replace(['"', "'"], '');
+                $fieldName = str_replace(['"',"'"],'',$item[0][0]);
                 $definedFieldRules = collect(array_slice($item[0], 1))->transform(function ($rule) {
-                    return Str::of($rule)->replace(['"', "'"], '')->__toString();
+                    return str_replace(['"',"'"],'',$rule);
                 })->toArray();
 
                 return ['key' => $fieldName, 'rules' => $definedFieldRules];

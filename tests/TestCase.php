@@ -1,10 +1,10 @@
 <?php
 
-namespace Rakutentech\LaravelRequestDocs\Tests;
+namespace ExclusiveDev\LaravelRequestDocs\Tests;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Orchestra\Testbench\TestCase as Orchestra;
-use Rakutentech\LaravelRequestDocs\LaravelRequestDocsServiceProvider;
+use ExclusiveDev\LaravelRequestDocs\LaravelRequestDocsServiceProvider;
 
 class TestCase extends Orchestra
 {

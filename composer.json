@@ -1,25 +1,22 @@
 {
-    "name": "rakutentech/laravel-request-docs",
+    "name": "exclusivedev/laravel-request-docs",
     "description": "Automatically generate Laravel docs from request rules, controllers and routes",
     "keywords": [
-        "rakutentech",
+        "exclusivedev",
         "laravel",
         "laravel-request-docs"
     ],
-    "homepage": "https://github.com/rakutentech/laravel-request-docs",
+    "homepage": "https://github.com/exclusivedev/laravel-request-docs",
     "license": "MIT",
     "authors": [
         {
-            "name": "Pulkit Kathuria",
-            "email": "pulkit.kathuria@rakuten.com",
+             "name": "Tom",
+            "email": "tom@exclusivedev.com"
             "role": "Developer"
         }
     ],
     "require": {
-        "php": "^7.4|^8.0",
-        "illuminate/contracts": "^8.37|^9.0",
-        "kitloong/laravel-app-logger": "^1.0",
-        "spatie/laravel-package-tools": "^1.4.3"
+        "php": "^7.4|^8.0"        
     },
     "require-dev": {
         "brianium/paratest": "^6.2",
@@ -33,12 +30,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Rakutentech\\LaravelRequestDocs\\": "src"
+            "ExclusiveDev\\LaravelRequestDocs\\": "src"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Rakutentech\\LaravelRequestDocs\\Tests\\": "tests"
+            "ExclusiveDev\\LaravelRequestDocs\\Tests\\": "tests"
         }
     },
     "scripts": {
@@ -52,10 +49,10 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Rakutentech\\LaravelRequestDocs\\LaravelRequestDocsServiceProvider"
+                "ExclusiveDev\\LaravelRequestDocs\\LaravelRequestDocsServiceProvider"
             ],
             "aliases": {
-                "LaravelRequestDocs": "Rakutentech\\LaravelRequestDocs\\LaravelRequestDocsFacade"
+                "LaravelRequestDocs": "ExclusiveDev\\LaravelRequestDocs\\LaravelRequestDocsFacade"
             }
         }
     },
